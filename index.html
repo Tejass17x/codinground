@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coding Platform</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', Arial, sans-serif;
+      background: #f4f6fb;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .header-bar {
+      width: 100vw;
+      background: #181a20;
+      color: #fff;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 2px 8px 0 rgba(0,0,0,0.07);
+      z-index: 100;
+      position: relative;
+    }
+    .app-container {
+      display: flex;
+      height: calc(100vh - 56px);
+      width: 100vw;
+      position: relative;
+    }
+    .editor-section {
+      background: #23272f;
+      color: #fff;
+      width: 50%;
+      min-width: 240px;
+      max-width: 90vw;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      border-radius: 18px 0 0 18px;
+      margin: 24px 0 24px 24px;
+      box-shadow: 0 4px 24px 0 rgba(0,0,0,0.10);
+      overflow: hidden;
+    }
+    .resizer-bar {
+      width: 14px;
+      background: linear-gradient(180deg, #e0e7ef 0%, #cfd8e3 100%);
+      cursor: ew-resize;
+      z-index: 10;
+      user-select: none;
+      position: relative;
+      flex-shrink: 0;
+      height: calc(100vh - 56px - 48px);
+      margin: 24px 0;
+      border: none;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px 0 rgba(0,0,0,0.07);
+      transition: background 0.2s;
+    }
+    .resizer-bar:hover, .resizer-bar.active {
+      background: linear-gradient(180deg, #b6e0fe 0%, #7fbcff 100%);
+    }
+    .resizer-handle {
+      width: 4px;
+      height: 40px;
+      background: #00bfff;
+      border-radius: 2px;
+      box-shadow: 0 0 6px 1px #00bfff44;
+    }
+    .preview-pane {
+      width: 50%;
+      background: #fff;
+      border-left: 2px solid #e0e0e0;
+      padding: 0;
+      overflow: auto;
+      min-width: 240px;
+      box-sizing: border-box;
+      border-radius: 0 18px 18px 0;
+      margin: 24px 24px 24px 0;
+      box-shadow: 0 4px 24px 0 rgba(0,0,0,0.10);
+      display: flex;
+      flex-direction: column;
+    }
+    .editor-tabs {
+      display: flex;
+      background: #1a1c22;
+      border-bottom: 1px solid #333;
+      padding: 0 16px;
+      gap: 12px;
+      height: 54px;
+      align-items: center;
+    }
+    .editor-tab {
+      padding: 8px 28px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #b6c2d1;
+      background: #23272f;
+      border: none;
+      outline: none;
+      border-radius: 24px 24px 0 0;
+      font-size: 1.08rem;
+      margin-top: 8px;
+      transition: background 0.2s, color 0.2s;
+    }
+    .editor-tab.active {
+      background: #fff;
+      color: #00bfff;
+      box-shadow: 0 2px 8px 0 rgba(0,191,255,0.07);
+      font-weight: 700;
+    }
+    .editor-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #23272f;
+      position: relative;
+      border-radius: 0 0 12px 12px;
+    }
+    .code-textarea {
+      flex: 1;
+      width: 100%;
+      background: #181a20;
+      color: #e6f1ff;
+      border: none;
+      resize: none;
+      font-size: 1.08rem;
+      font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace;
+      padding: 18px 20px;
+      outline: none;
+      line-height: 1.6;
+      border-radius: 0 0 12px 12px;
+      box-sizing: border-box;
+      transition: background 0.2s;
+    }
+    .autocomplete-list {
+      position: absolute;
+      left: 0;
+      min-width: 180px;
+      max-width: 260px;
+      max-height: 200px;
+      background: #23272f;
+      color: #00bfff;
+      border: 1.5px solid #00bfff;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px 0 rgba(0,191,255,0.13);
+      z-index: 100;
+      overflow-y: auto;
+      font-family: 'Inter', Arial, sans-serif;
+      font-size: 1rem;
+      padding: 6px 0;
+      display: none;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px) scale(0.98);
+      transition: opacity 0.18s cubic-bezier(.4,0,.2,1), transform 0.18s cubic-bezier(.4,0,.2,1);
+    }
+    .autocomplete-list.active {
+      display: block;
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+    .autocomplete-item {
+      padding: 10px 22px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: #00bfff;
+      font-size: 1rem;
+      text-align: left;
+      width: 100%;
+      border-radius: 20px;
+      margin: 2px 8px;
+      transition: background 0.15s, color 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 500;
+    }
+    .autocomplete-item .match {
+      color: #fff;
+      font-weight: 700;
+      background: #00bfff;
+      border-radius: 8px;
+      padding: 0 2px;
+      margin-right: 2px;
+    }
+    .autocomplete-item .desc {
+      color: #b6c2d1;
+      font-size: 0.98em;
+      font-weight: 400;
+      margin-left: 8px;
+      opacity: 0.85;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+    .autocomplete-item:hover, .autocomplete-item.selected {
+      background: #00bfff;
+      color: #fff;
+    }
+    .autocomplete-item.selected .desc,
+    .autocomplete-item:hover .desc {
+      color: #fff;
+      opacity: 1;
+    }
+    .editor-buttons {
+      display: flex;
+      gap: 16px;
+      padding: 18px 20px 18px 20px;
+      background: #1a1c22;
+      border-top: 1px solid #333;
+      border-radius: 0 0 12px 12px;
+    }
+    .editor-buttons button {
+      background: linear-gradient(90deg, #00bfff 0%, #009acd 100%);
+      color: #fff;
+      border: none;
+      padding: 10px 28px;
+      border-radius: 24px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 1.08rem;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 8px 0 rgba(0,191,255,0.07);
+      transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+    }
+    .editor-buttons button:hover {
+      background: linear-gradient(90deg, #009acd 0%, #00bfff 100%);
+      color: #fff;
+      box-shadow: 0 4px 16px 0 rgba(0,191,255,0.13);
+    }
+    .preview-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #fff;
+      border-radius: 0 0 12px 12px;
+      flex: 1;
+    }
+    .mirror-div {
+      position: absolute;
+      visibility: hidden;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      z-index: -1;
+      font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace;
+      font-size: 1.08rem;
+      padding: 18px 20px;
+      line-height: 1.6;
+      background: #181a20;
+      color: #e6f1ff;
+      border-radius: 0 0 12px 12px;
+      box-sizing: border-box;
+      width: calc(100% - 40px);
+      pointer-events: none;
+    }
+    @media (max-width: 1100px) {
+      .editor-section, .preview-pane {
+        margin: 12px 0 12px 0;
+        border-radius: 12px;
+      }
+      .app-container {
+        gap: 0;
+      }
+    }
+    @media (max-width: 900px) {
+      .app-container {
+        flex-direction: column;
+        height: auto;
+      }
+      .editor-section, .preview-pane {
+        width: 100% !important;
+        min-width: 0;
+        height: 50vh;
+        margin: 12px 12px 0 12px;
+        border-radius: 12px;
+      }
+      .resizer-bar {
+        display: none;
+      }
+      .preview-iframe {
+        height: 50vh;
+      }
+      .autocomplete-list {
+        left: 0 !important;
+        min-width: 120px;
+        max-width: 90vw;
+        font-size: 0.98rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header-bar">
+    <span>💻 Coding Platform </span>
+  </div>
+  <div class="app-container">
+    <div class="editor-section" id="editor-section">
+      <div class="editor-tabs">
+        <button class="editor-tab active" id="tab-html">HTML</button>
+        <button class="editor-tab" id="tab-css">CSS</button>
+        <button class="editor-tab" id="tab-js">JAVASCRIPT</button>
+      </div>
+      <div class="editor-area" style="position:relative;">
+        <textarea id="editor-html" class="code-textarea" spellcheck="false" autocomplete="off"></textarea>
+        <div id="autocomplete-list" class="autocomplete-list"></div>
+        <div id="mirror-div" class="mirror-div"></div>
+        <textarea id="editor-css" class="code-textarea" style="display:none" spellcheck="false"></textarea>
+        <textarea id="editor-js" class="code-textarea" style="display:none" spellcheck="false"></textarea>
+      </div>
+      <div class="editor-buttons">
+        <button id="reset-btn">Reset Code</button>
+        <button id="run-btn">Run Code</button>
+        <button id="save-btn">Save Snippet</button>
+      </div>
+    </div>
+    <div class="resizer-bar" id="resizer-bar"><div class="resizer-handle"></div></div>
+    <div class="preview-pane" id="preview-pane">
+      <iframe id="preview" class="preview-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
+    </div>
+  </div>
+  <script>
+    // Default code
+    const defaultCode = {
+      html: '<!DOCTYPE html>\n<html>\n  <head></head>\n  <body>\n    <h1 class="cssf">Hello, World!</h1>\n  </body>\n</html>',
+      css: '.cssf {\n  color: black;\n  border: 2px solid blue;\n}',
+      js: ''
+    };
+    // Elements
+    const tabs = {
+      html: document.getElementById('tab-html'),
+      css: document.getElementById('tab-css'),
+      js: document.getElementById('tab-js')
+    };
+    const editors = {
+      html: document.getElementById('editor-html'),
+      css: document.getElementById('editor-css'),
+      js: document.getElementById('editor-js')
+    };
+    let activeTab = 'html';
+    // Tab switching
+    Object.keys(tabs).forEach(function(tab) {
+      tabs[tab].addEventListener('click', function() {
+        Object.keys(tabs).forEach(function(t) {
+          tabs[t].classList.remove('active');
+          editors[t].style.display = 'none';
+        });
+        tabs[tab].classList.add('active');
+        editors[tab].style.display = 'block';
+        activeTab = tab;
+        // Hide autocomplete if not HTML
+        if (tab !== 'html') document.getElementById('autocomplete-list').style.display = 'none';
+      });
+    });
+    // Load default or saved code
+    function loadCode() {
+      var saved = localStorage.getItem('coding-platform-snippet');
+      var code = saved ? JSON.parse(saved) : defaultCode;
+      editors.html.value = code.html;
+      editors.css.value = code.css;
+      editors.js.value = code.js;
+    }
+    // Save code
+    function saveCode() {
+      var code = {
+        html: editors.html.value,
+        css: editors.css.value,
+        js: editors.js.value
+      };
+      localStorage.setItem('coding-platform-snippet', JSON.stringify(code));
+      alert('Snippet saved!');
+    }
+    // Reset code
+    function resetCode() {
+      if (confirm('Reset code to default?')) {
+        editors.html.value = defaultCode.html;
+        editors.css.value = defaultCode.css;
+        editors.js.value = defaultCode.js;
+        runCode();
+      }
+    }
+    // Run code
+    function runCode() {
+      var html = editors.html.value;
+      var css = '<style>' + editors.css.value + '</style>';
+      var js = '<script>' + editors.js.value.replace(/<\//g, '<\\/') + '<\/script>';
+      var doc = '<!DOCTYPE html><html><head>' + css + '</head><body>' + html + js + '</body></html>';
+      var iframe = document.getElementById('preview');
+      iframe.srcdoc = doc;
+    }
+    // Button events
+    document.getElementById('run-btn').onclick = runCode;
+    document.getElementById('reset-btn').onclick = resetCode;
+    document.getElementById('save-btn').onclick = saveCode;
+    // Live preview on load
+    loadCode();
+    runCode();
+
+    // --- Most Robust Resizer Bar Logic ---
+    const resizer = document.getElementById('resizer-bar');
+    const editorSection = document.getElementById('editor-section');
+    const previewPane = document.getElementById('preview-pane');
+    const previewIframe = document.getElementById('preview');
+    let isResizing = false;
+
+    resizer.addEventListener('mousedown', function(e) {
+      isResizing = true;
+      resizer.classList.add('active');
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+      if (resizer.setPointerCapture) {
+        try { resizer.setPointerCapture(e.pointerId); } catch (err) {}
+      }
+      previewIframe.style.pointerEvents = 'none';
+      e.preventDefault();
+    });
+
+    function onMouseMove(e) {
+      if (!isResizing) return;
+      const containerRect = document.querySelector('.app-container').getBoundingClientRect();
+      const minWidth = 240;
+      const maxWidth = containerRect.width - minWidth - resizer.offsetWidth;
+      let newWidth = e.clientX - containerRect.left;
+      if (newWidth < minWidth) newWidth = minWidth;
+      if (newWidth > maxWidth) newWidth = maxWidth;
+      editorSection.style.width = newWidth + 'px';
+      previewPane.style.width = (containerRect.width - newWidth - resizer.offsetWidth) + 'px';
+    }
+
+    function onMouseUp(e) {
+      if (isResizing) {
+        isResizing = false;
+        resizer.classList.remove('active');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        if (resizer.releasePointerCapture) {
+          try { resizer.releasePointerCapture(e.pointerId); } catch (err) {}
+        }
+        previewIframe.style.pointerEvents = '';
+      }
+    }
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    // --- HTML Autocomplete Feature (Modern, with Descriptions) ---
+    const htmlTags = [
+      { tag: 'p', desc: 'Paragraph' },
+      { tag: 'h1', desc: 'Heading 1' },
+      { tag: 'h2', desc: 'Heading 2' },
+      { tag: 'h3', desc: 'Heading 3' },
+      { tag: 'h4', desc: 'Heading 4' },
+      { tag: 'h5', desc: 'Heading 5' },
+      { tag: 'h6', desc: 'Heading 6' },
+      { tag: 'br', desc: 'Line Break' },
+      { tag: 'hr', desc: 'Horizontal Rule' },
+      { tag: 'blockquote', desc: 'Quoted Section' },
+      { tag: 'pre', desc: 'Preformatted Text' },
+      { tag: 'abbr', desc: 'Abbreviation' },
+      { tag: 'cite', desc: 'Citation' },
+      { tag: 'code', desc: 'Code' },
+      { tag: 'em', desc: 'Emphasis' },
+      { tag: 'strong', desc: 'Strong Importance' },
+      { tag: 'i', desc: 'Italic' },
+      { tag: 'b', desc: 'Bold' },
+      { tag: 'mark', desc: 'Marked/Highlighted' },
+      { tag: 'small', desc: 'Smaller Text' },
+      { tag: 'sub', desc: 'Subscript' },
+      { tag: 'sup', desc: 'Superscript' },
+      { tag: 'u', desc: 'Underlined Text' },
+      { tag: 'ins', desc: 'Inserted Text' },
+      { tag: 'del', desc: 'Deleted Text' },
+      { tag: 'div', desc: 'Generic Container' },
+      { tag: 'span', desc: 'Inline Container' },
+      { tag: 'header', desc: 'Page or Section Header' },
+      { tag: 'footer', desc: 'Footer for Section' },
+      { tag: 'main', desc: 'Main Content' },
+      { tag: 'section', desc: 'Section of Document' },
+      { tag: 'article', desc: 'Independent Article' },
+      { tag: 'aside', desc: 'Sidebar Content' },
+      { tag: 'nav', desc: 'Navigation Links' },
+      { tag: 'figure', desc: 'Figure with Caption' },
+      { tag: 'figcaption', desc: 'Caption for <figure>' },
+      { tag: 'ul', desc: 'Unordered List' },
+      { tag: 'ol', desc: 'Ordered List' },
+      { tag: 'li', desc: 'List Item' },
+      { tag: 'dl', desc: 'Description List' },
+      { tag: 'dt', desc: 'Term/Name in Description List' },
+      { tag: 'dd', desc: 'Description/Detail in Description List' },
+      { tag: 'a', desc: 'Anchor/Link' },
+      { tag: 'img', desc: 'Image' },
+      { tag: 'video', desc: 'Video' },
+      { tag: 'audio', desc: 'Audio' },
+      { tag: 'source', desc: 'Media Source' },
+      { tag: 'track', desc: 'Text Tracks (captions/subtitles)' },
+      { tag: 'map', desc: 'Image Map' },
+      { tag: 'area', desc: 'Clickable Area Inside Map' },
+      { tag: 'iframe', desc: 'Inline Frame' },
+      { tag: 'embed', desc: 'Embedded Content' },
+      { tag: 'object', desc: 'Generic Object' },
+      { tag: 'param', desc: 'Parameters for <object>' },
+      { tag: 'table', desc: 'Table' },
+      { tag: 'caption', desc: 'Table Caption' },
+      { tag: 'thead', desc: 'Table Header' },
+      { tag: 'tbody', desc: 'Table Body' },
+      { tag: 'tfoot', desc: 'Table Footer' },
+      { tag: 'tr', desc: 'Table Row' },
+      { tag: 'th', desc: 'Table Header Cell' },
+      { tag: 'td', desc: 'Table Data Cell' },
+      { tag: 'col', desc: 'Column Properties' },
+      { tag: 'colgroup', desc: 'Group of Columns' },
+      { tag: 'form', desc: 'Form' },
+      { tag: 'input', desc: 'Input Field' },
+      { tag: 'textarea', desc: 'Multi-line Text Input' },
+      { tag: 'label', desc: 'Form Label' },
+      { tag: 'button', desc: 'Button' },
+      { tag: 'select', desc: 'Drop-down List' },
+      { tag: 'option', desc: 'Option in Select' },
+      { tag: 'optgroup', desc: 'Group of Options' },
+      { tag: 'fieldset', desc: 'Group Related Fields' },
+      { tag: 'legend', desc: 'Title for <fieldset>' },
+      { tag: 'datalist', desc: 'Predefined Options for Input' },
+      { tag: 'output', desc: 'Result of a Calculation' },
+      { tag: 'meter', desc: 'Scalar Measurement' },
+      { tag: 'progress', desc: 'Progress Indicator' },
+      { tag: 'script', desc: 'JavaScript Code' },
+      { tag: 'noscript', desc: 'Fallback for No JavaScript' },
+      { tag: 'template', desc: 'Template Content (not rendered)' },
+      { tag: 'canvas', desc: 'Drawing via JavaScript' },
+      { tag: 'html', desc: 'Root of Document' },
+      { tag: 'head', desc: 'Metadata Container' },
+      { tag: 'title', desc: 'Page Title' },
+      { tag: 'meta', desc: 'Metadata' },
+      { tag: 'link', desc: 'External Resource Link' },
+      { tag: 'style', desc: 'Internal CSS' },
+      { tag: 'base', desc: 'Base URL for Links' },
+      { tag: 'time', desc: 'Time or Date' },
+      { tag: 'data', desc: 'Machine-Readable Data' },
+      { tag: 'details', desc: 'Disclosure Widget' },
+      { tag: 'summary', desc: 'Summary for <details>' },
+      { tag: 'dialog', desc: 'Dialog Box or Popup' },
+      { tag: 'bdi', desc: 'Isolate Direction of Text' },
+      { tag: 'bdo', desc: 'Override Text Direction' },
+      { tag: 'wbr', desc: 'Word Break Opportunity' }
+    ];
+    const selfClosingTags = new Set(['br','hr','img','input','meta','link','source','track','area','base','col','embed','param','wbr']);
+    const htmlEditor = document.getElementById('editor-html');
+    const autocompleteList = document.getElementById('autocomplete-list');
+    const mirrorDiv = document.getElementById('mirror-div');
+    let selectedIndex = -1;
+    let currentSuggestions = [];
+
+    function getTagWordBeforeCursor(text, pos) {
+      let left = text.slice(0, pos);
+      let match = left.match(/<([a-zA-Z0-9]*)$/);
+      return match ? match[1] : '';
+    }
+    function highlightMatch(tag, word) {
+      if (!word) return tag;
+      const idx = tag.indexOf(word.toLowerCase());
+      if (idx === -1) return tag;
+      return tag.substring(0, idx) + '<span class="match">' + tag.substring(idx, idx + word.length) + '</span>' + tag.substring(idx + word.length);
+    }
+    function showAutocomplete() {
+      const cursorPos = htmlEditor.selectionStart;
+      const value = htmlEditor.value;
+      const word = getTagWordBeforeCursor(value, cursorPos);
+      if (!word || word.length < 1) {
+        autocompleteList.classList.remove('active');
+        return;
+      }
+      currentSuggestions = htmlTags.filter(obj => obj.tag.startsWith(word.toLowerCase()));
+      if (currentSuggestions.length === 0) {
+        autocompleteList.classList.remove('active');
+        return;
+      }
+      autocompleteList.innerHTML = currentSuggestions.map((obj, i) =>
+        `<div class="autocomplete-item${i === selectedIndex ? ' selected' : ''}" data-tag="${obj.tag}">&lt;${highlightMatch(obj.tag, word)}&gt;<span class="desc">${obj.desc}</span></div>`
+      ).join('');
+      positionAutocompleteDropdown(htmlEditor, cursorPos);
+      autocompleteList.classList.add('active');
+    }
+    function positionAutocompleteDropdown(textarea, cursorPos) {
+      const style = getComputedStyle(textarea);
+      mirrorDiv.style.width = textarea.offsetWidth + 'px';
+      mirrorDiv.style.fontSize = style.fontSize;
+      mirrorDiv.style.fontFamily = style.fontFamily;
+      mirrorDiv.style.lineHeight = style.lineHeight;
+      mirrorDiv.style.padding = style.padding;
+      mirrorDiv.style.borderRadius = style.borderRadius;
+      mirrorDiv.style.background = style.background;
+      mirrorDiv.style.color = style.color;
+      mirrorDiv.textContent = textarea.value.substring(0, cursorPos);
+      const marker = document.createElement('span');
+      marker.textContent = '\u200b';
+      mirrorDiv.appendChild(marker);
+      const rect = marker.getBoundingClientRect();
+      const parentRect = textarea.getBoundingClientRect();
+      let top = rect.top - parentRect.top + textarea.scrollTop + 28;
+      let left = rect.left - parentRect.left + textarea.scrollLeft;
+      if (window.innerWidth < 900) left = 0;
+      autocompleteList.style.left = left + 'px';
+      autocompleteList.style.top = top + 'px';
+    }
+    htmlEditor.addEventListener('input', function(e) {
+      if (activeTab !== 'html') return;
+      showAutocomplete();
+    });
+    htmlEditor.addEventListener('keydown', function(e) {
+      if (!autocompleteList.classList.contains('active')) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex = (selectedIndex + 1) % currentSuggestions.length;
+        showAutocomplete();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex = (selectedIndex - 1 + currentSuggestions.length) % currentSuggestions.length;
+        showAutocomplete();
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        if (selectedIndex >= 0 && currentSuggestions[selectedIndex]) {
+          e.preventDefault();
+          insertTag(currentSuggestions[selectedIndex].tag);
+        }
+      } else if (e.key === 'Escape') {
+        autocompleteList.classList.remove('active');
+      } else {
+        selectedIndex = -1;
+      }
+    });
+    autocompleteList.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.autocomplete-item')) {
+        insertTag(e.target.closest('.autocomplete-item').getAttribute('data-tag'));
+        e.preventDefault();
+      }
+    });
+    function insertTag(tag) {
+      const cursorPos = htmlEditor.selectionStart;
+      const value = htmlEditor.value;
+      // Find the last < and the word after it
+      let left = value.slice(0, cursorPos);
+      let match = left.match(/<([a-zA-Z0-9]*)$/);
+      let word = match ? match[1] : '';
+      let before = value.slice(0, cursorPos - word.length - 1); // -1 to include the <
+      let after = value.slice(cursorPos);
+      let insertText = selfClosingTags.has(tag) ? `<${tag}>` : `<${tag}></${tag}>`;
+      htmlEditor.value = before + insertText + after;
+      htmlEditor.focus();
+      htmlEditor.selectionStart = htmlEditor.selectionEnd = before.length + insertText.length - (selfClosingTags.has(tag) ? 0 : (`</${tag}>`.length));
+      autocompleteList.classList.remove('active');
+      selectedIndex = -1;
+      showAutocomplete();
+    }
+    htmlEditor.addEventListener('blur', function() {
+      setTimeout(() => autocompleteList.classList.remove('active'), 150);
+    });
+    document.addEventListener('mousedown', function(e) {
+      if (!autocompleteList.contains(e.target) && e.target !== htmlEditor) {
+        autocompleteList.classList.remove('active');
+      }
+    });
+
+    // --- CSS Autocomplete Feature (Modern, with Descriptions) ---
+    const cssProperties = [
+      { prop: 'color', desc: 'Text and Font' },
+      { prop: 'font', desc: 'Text and Font' },
+      { prop: 'font-family', desc: 'Text and Font' },
+      { prop: 'font-size', desc: 'Text and Font' },
+      { prop: 'font-style', desc: 'Text and Font' },
+      { prop: 'font-weight', desc: 'Text and Font' },
+      { prop: 'letter-spacing', desc: 'Text and Font' },
+      { prop: 'line-height', desc: 'Text and Font' },
+      { prop: 'text-align', desc: 'Text and Font' },
+      { prop: 'text-decoration', desc: 'Text and Font' },
+      { prop: 'text-indent', desc: 'Text and Font' },
+      { prop: 'text-overflow', desc: 'Text and Font' },
+      { prop: 'text-shadow', desc: 'Text and Font' },
+      { prop: 'text-transform', desc: 'Text and Font' },
+      { prop: 'white-space', desc: 'Text and Font' },
+      { prop: 'word-break', desc: 'Text and Font' },
+      { prop: 'word-spacing', desc: 'Text and Font' },
+      { prop: 'word-wrap', desc: 'Text and Font' },
+      { prop: 'direction', desc: 'Text and Font' },
+      { prop: 'unicode-bidi', desc: 'Text and Font' },
+      { prop: 'margin', desc: 'Box Model' },
+      { prop: 'margin-top', desc: 'Box Model' },
+      { prop: 'margin-right', desc: 'Box Model' },
+      { prop: 'margin-bottom', desc: 'Box Model' },
+      { prop: 'margin-left', desc: 'Box Model' },
+      { prop: 'padding', desc: 'Box Model' },
+      { prop: 'padding-top', desc: 'Box Model' },
+      { prop: 'padding-right', desc: 'Box Model' },
+      { prop: 'padding-bottom', desc: 'Box Model' },
+      { prop: 'padding-left', desc: 'Box Model' },
+      { prop: 'border', desc: 'Box Model' },
+      { prop: 'border-width', desc: 'Box Model' },
+      { prop: 'border-style', desc: 'Box Model' },
+      { prop: 'border-color', desc: 'Box Model' },
+      { prop: 'border-radius', desc: 'Box Model' },
+      { prop: 'box-sizing', desc: 'Box Model' },
+      { prop: 'outline', desc: 'Box Model' },
+      { prop: 'outline-width', desc: 'Box Model' },
+      { prop: 'outline-color', desc: 'Box Model' },
+      { prop: 'outline-style', desc: 'Box Model' },
+      { prop: 'outline-offset', desc: 'Box Model' },
+      { prop: 'background', desc: 'Background' },
+      { prop: 'background-color', desc: 'Background' },
+      { prop: 'background-image', desc: 'Background' },
+      { prop: 'background-size', desc: 'Background' },
+      { prop: 'background-position', desc: 'Background' },
+      { prop: 'background-repeat', desc: 'Background' },
+      { prop: 'background-attachment', desc: 'Background' },
+      { prop: 'background-origin', desc: 'Background' },
+      { prop: 'background-clip', desc: 'Background' },
+      { prop: 'width', desc: 'Dimensions' },
+      { prop: 'min-width', desc: 'Dimensions' },
+      { prop: 'max-width', desc: 'Dimensions' },
+      { prop: 'height', desc: 'Dimensions' },
+      { prop: 'min-height', desc: 'Dimensions' },
+      { prop: 'max-height', desc: 'Dimensions' },
+      { prop: 'display', desc: 'Display and Visibility' },
+      { prop: 'visibility', desc: 'Display and Visibility' },
+      { prop: 'overflow', desc: 'Display and Visibility' },
+      { prop: 'overflow-x', desc: 'Display and Visibility' },
+      { prop: 'overflow-y', desc: 'Display and Visibility' },
+      { prop: 'clip', desc: 'Display and Visibility' },
+      { prop: 'box-shadow', desc: 'Display and Visibility' },
+      { prop: 'opacity', desc: 'Display and Visibility' },
+      { prop: 'position', desc: 'Positioning' },
+      { prop: 'top', desc: 'Positioning' },
+      { prop: 'right', desc: 'Positioning' },
+      { prop: 'bottom', desc: 'Positioning' },
+      { prop: 'left', desc: 'Positioning' },
+      { prop: 'z-index', desc: 'Positioning' },
+      { prop: 'flex', desc: 'Flexbox' },
+      { prop: 'flex-grow', desc: 'Flexbox' },
+      { prop: 'flex-shrink', desc: 'Flexbox' },
+      { prop: 'flex-basis', desc: 'Flexbox' },
+      { prop: 'flex-direction', desc: 'Flexbox' },
+      { prop: 'flex-wrap', desc: 'Flexbox' },
+      { prop: 'justify-content', desc: 'Flexbox' },
+      { prop: 'align-items', desc: 'Flexbox' },
+      { prop: 'align-self', desc: 'Flexbox' },
+      { prop: 'align-content', desc: 'Flexbox' },
+      { prop: 'gap', desc: 'Flexbox' },
+      { prop: 'row-gap', desc: 'Flexbox' },
+      { prop: 'column-gap', desc: 'Flexbox' },
+      { prop: 'grid-template-columns', desc: 'Grid' },
+      { prop: 'grid-template-rows', desc: 'Grid' },
+      { prop: 'grid-template-areas', desc: 'Grid' },
+      { prop: 'grid-area', desc: 'Grid' },
+      { prop: 'grid-row', desc: 'Grid' },
+      { prop: 'grid-column', desc: 'Grid' },
+      { prop: 'grid-auto-flow', desc: 'Grid' },
+      { prop: 'grid-gap', desc: 'Grid' },
+      { prop: 'vertical-align', desc: 'Alignment' },
+      { prop: 'text-align', desc: 'Alignment' },
+      { prop: 'align-content', desc: 'Alignment' },
+      { prop: 'align-items', desc: 'Alignment' },
+      { prop: 'align-self', desc: 'Alignment' },
+      { prop: 'justify-content', desc: 'Alignment' },
+      { prop: 'place-items', desc: 'Alignment' },
+      { prop: 'list-style', desc: 'List Style' },
+      { prop: 'list-style-type', desc: 'List Style' },
+      { prop: 'list-style-position', desc: 'List Style' },
+      { prop: 'list-style-image', desc: 'List Style' },
+      { prop: 'border-collapse', desc: 'Table' },
+      { prop: 'border-spacing', desc: 'Table' },
+      { prop: 'empty-cells', desc: 'Table' },
+      { prop: 'table-layout', desc: 'Table' },
+      { prop: 'caption-side', desc: 'Table' },
+      { prop: 'transition', desc: 'Transition and Animation' },
+      { prop: 'transition-property', desc: 'Transition and Animation' },
+      { prop: 'transition-duration', desc: 'Transition and Animation' },
+      { prop: 'transition-timing-function', desc: 'Transition and Animation' },
+      { prop: 'transition-delay', desc: 'Transition and Animation' },
+      { prop: 'animation', desc: 'Transition and Animation' },
+      { prop: 'animation-name', desc: 'Transition and Animation' },
+      { prop: 'animation-duration', desc: 'Transition and Animation' },
+      { prop: 'animation-timing-function', desc: 'Transition and Animation' },
+      { prop: 'animation-delay', desc: 'Transition and Animation' },
+      { prop: 'animation-iteration-count', desc: 'Transition and Animation' },
+      { prop: 'animation-direction', desc: 'Transition and Animation' },
+      { prop: 'animation-fill-mode', desc: 'Transition and Animation' },
+      { prop: 'animation-play-state', desc: 'Transition and Animation' },
+      { prop: '@keyframes', desc: 'Transition and Animation' },
+      { prop: 'transform', desc: 'Transform' },
+      { prop: 'transform-origin', desc: 'Transform' },
+      { prop: 'transform-style', desc: 'Transform' },
+      { prop: 'perspective', desc: 'Transform' },
+      { prop: 'perspective-origin', desc: 'Transform' },
+      { prop: 'backface-visibility', desc: 'Transform' },
+      { prop: 'filter', desc: 'Filter and Effects' },
+      { prop: 'backdrop-filter', desc: 'Filter and Effects' },
+      { prop: 'box-shadow', desc: 'Filter and Effects' },
+      { prop: 'mix-blend-mode', desc: 'Filter and Effects' },
+      { prop: 'isolation', desc: 'Filter and Effects' },
+      { prop: 'cursor', desc: 'Cursor and Interactions' },
+      { prop: 'pointer-events', desc: 'Cursor and Interactions' },
+      { prop: 'user-select', desc: 'Cursor and Interactions' },
+      { prop: 'content', desc: 'Content and Quotes' },
+      { prop: 'quotes', desc: 'Content and Quotes' },
+      { prop: 'counter-reset', desc: 'Content and Quotes' },
+      { prop: 'counter-increment', desc: 'Content and Quotes' },
+      { prop: '@media', desc: 'Media and Responsive' },
+      { prop: '@supports', desc: 'Media and Responsive' },
+      { prop: '@import', desc: 'Media and Responsive' },
+      { prop: '@font-face', desc: 'Media and Responsive' },
+      { prop: 'overflow', desc: 'Scroll and Overflow' },
+      { prop: 'scroll-behavior', desc: 'Scroll and Overflow' },
+      { prop: 'scroll-snap-type', desc: 'Scroll and Overflow' },
+      { prop: 'scroll-snap-align', desc: 'Scroll and Overflow' },
+      { prop: 'overscroll-behavior', desc: 'Scroll and Overflow' },
+      { prop: 'resize', desc: 'Miscellaneous' },
+      { prop: 'box-decoration-break', desc: 'Miscellaneous' },
+      { prop: 'will-change', desc: 'Miscellaneous' },
+      { prop: 'all', desc: 'Miscellaneous' },
+      { prop: 'appearance', desc: 'Miscellaneous' }
+    ];
+    const cssEditor = document.getElementById('editor-css');
+    const cssAutocompleteList = document.createElement('div');
+    cssAutocompleteList.className = 'autocomplete-list';
+    cssEditor.parentNode.insertBefore(cssAutocompleteList, cssEditor.nextSibling);
+    let cssSelectedIndex = -1;
+    let cssCurrentSuggestions = [];
+
+    function getCssWordBeforeCursor(text, pos) {
+      let left = text.slice(0, pos);
+      let match = left.match(/([a-zA-Z-]*)$/);
+      return match ? match[1] : '';
+    }
+    function showCssAutocomplete() {
+      const cursorPos = cssEditor.selectionStart;
+      const value = cssEditor.value;
+      const word = getCssWordBeforeCursor(value, cursorPos);
+      if (!word || word.length < 1) {
+        cssAutocompleteList.classList.remove('active');
+        return;
+      }
+      cssCurrentSuggestions = cssProperties.filter(obj => obj.prop.startsWith(word.toLowerCase()));
+      if (cssCurrentSuggestions.length === 0) {
+        cssAutocompleteList.classList.remove('active');
+        return;
+      }
+      cssAutocompleteList.innerHTML = cssCurrentSuggestions.map((obj, i) =>
+        `<div class="autocomplete-item${i === cssSelectedIndex ? ' selected' : ''}" data-prop="${obj.prop}"><span class="match">${obj.prop.substr(0, word.length)}</span>${obj.prop.substr(word.length)}<span class="desc">${obj.desc}</span></div>`
+      ).join('');
+      // Position dropdown below caret
+      positionCssAutocompleteDropdown(cssEditor, cursorPos);
+      cssAutocompleteList.classList.add('active');
+    }
+    function positionCssAutocompleteDropdown(textarea, cursorPos) {
+      const style = getComputedStyle(textarea);
+      mirrorDiv.style.width = textarea.offsetWidth + 'px';
+      mirrorDiv.style.fontSize = style.fontSize;
+      mirrorDiv.style.fontFamily = style.fontFamily;
+      mirrorDiv.style.lineHeight = style.lineHeight;
+      mirrorDiv.style.padding = style.padding;
+      mirrorDiv.style.borderRadius = style.borderRadius;
+      mirrorDiv.style.background = style.background;
+      mirrorDiv.style.color = style.color;
+      mirrorDiv.textContent = textarea.value.substring(0, cursorPos);
+      const marker = document.createElement('span');
+      marker.textContent = '\u200b';
+      mirrorDiv.appendChild(marker);
+      const rect = marker.getBoundingClientRect();
+      const parentRect = textarea.getBoundingClientRect();
+      let top = rect.top - parentRect.top + textarea.scrollTop + 28;
+      let left = rect.left - parentRect.left + textarea.scrollLeft;
+      if (window.innerWidth < 900) left = 0;
+      cssAutocompleteList.style.left = left + 'px';
+      cssAutocompleteList.style.top = top + 'px';
+    }
+    cssEditor.addEventListener('input', function(e) {
+      if (activeTab !== 'css') return;
+      showCssAutocomplete();
+    });
+    cssEditor.addEventListener('keydown', function(e) {
+      if (!cssAutocompleteList.classList.contains('active')) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        cssSelectedIndex = (cssSelectedIndex + 1) % cssCurrentSuggestions.length;
+        showCssAutocomplete();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        cssSelectedIndex = (cssSelectedIndex - 1 + cssCurrentSuggestions.length) % cssCurrentSuggestions.length;
+        showCssAutocomplete();
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        if (cssSelectedIndex >= 0 && cssCurrentSuggestions[cssSelectedIndex]) {
+          e.preventDefault();
+          insertCssProperty(cssCurrentSuggestions[cssSelectedIndex].prop);
+        }
+      } else if (e.key === 'Escape') {
+        cssAutocompleteList.classList.remove('active');
+      } else {
+        cssSelectedIndex = -1;
+      }
+    });
+    cssAutocompleteList.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.autocomplete-item')) {
+        insertCssProperty(e.target.closest('.autocomplete-item').getAttribute('data-prop'));
+        e.preventDefault();
+      }
+    });
+    function insertCssProperty(prop) {
+      const cursorPos = cssEditor.selectionStart;
+      const value = cssEditor.value;
+      let left = value.slice(0, cursorPos);
+      let match = left.match(/([a-zA-Z-]*)$/);
+      let word = match ? match[1] : '';
+      let before = value.slice(0, cursorPos - word.length);
+      let after = value.slice(cursorPos);
+      let insertText = prop + ': ';
+      cssEditor.value = before + insertText + after;
+      cssEditor.focus();
+      cssEditor.selectionStart = cssEditor.selectionEnd = before.length + insertText.length;
+      cssAutocompleteList.classList.remove('active');
+      cssSelectedIndex = -1;
+      showCssAutocomplete();
+    }
+    cssEditor.addEventListener('blur', function() {
+      setTimeout(() => cssAutocompleteList.classList.remove('active'), 150);
+    });
+    document.addEventListener('mousedown', function(e) {
+      if (!cssAutocompleteList.contains(e.target) && e.target !== cssEditor) {
+        cssAutocompleteList.classList.remove('active');
+      }
+    });
+  </script>
+</body>
+</html> 
